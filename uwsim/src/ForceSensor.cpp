@@ -22,16 +22,6 @@ ForceSensor::ForceSensor(ForceSensor_Config * cfg, osg::ref_ptr<osg::Node> targe
   physics=NULL;
 }
 
-static void forceSensorPreTickCallback(btDynamicsWorld *world, btScalar timeStep){
-  ForceSensor *fs = static_cast<ForceSensor *>(world->getWorldUserInfo());
-  fs->physicsInternalPreProcessCallback(timeStep);
-}
-
-static void forceSensorPostTickCallback(btDynamicsWorld *world, btScalar timeStep){
-  ForceSensor *fs = static_cast<ForceSensor *>(world->getWorldUserInfo());
-  fs->physicsInternalPostProcessCallback(timeStep);
-}
-
 void ForceSensor::applyPhysics(BulletPhysics * bulletPhysics)
 {
   physics=bulletPhysics;
@@ -42,44 +32,38 @@ void ForceSensor::applyPhysics(BulletPhysics * bulletPhysics)
   btTarget = data->rigidBody;
   btTarget->setCenterOfMassTransform(btTransform(btQuaternion(0,0,0,1),btVector3(offsetp[0],offsetp[1],offsetp[2])));
 
-  physics->dynamicsWorld->setInternalTickCallback(forceSensorPreTickCallback, static_cast<void *>(this),true);
-  physics->dynamicsWorld->setInternalTickCallback(forceSensorPostTickCallback, static_cast<void *>(this));
-}
+  if(btTarget->getInvMass()==0)
+  {
+    ROS_FATAL("ForceSensor %s used in a null mass object.", name.c_str());
+    exit(0);
+  } 
 
-void ForceSensor::physicsInternalPreProcessCallback(btScalar timeStep)
-{
-  if (physics->physicsStep==1){
-    copy->setCenterOfMassTransform(btTarget->getCenterOfMassTransform());
-    copy->clearForces();
-    copy->setLinearVelocity(btTarget->getLinearVelocity());
-    copy->setAngularVelocity(btTarget->getAngularVelocity());
-    linInitial=copy->getLinearVelocity();
-    angInitial=copy->getAngularVelocity();
-  }
-  physics->physicsStep++;
-}
-
-void ForceSensor::physicsInternalPostProcessCallback(btScalar timeStep)
-{
-    linFinal=copy->getLinearVelocity();
-    angFinal=copy->getAngularVelocity();
-    lastTimeStep=timeStep;
+  CBreference=physics->callbackManager->addForceSensor(copy,btTarget);
 }
 
 void ForceSensor::getForceTorque(double force[3], double torque[3])
 {
+
+  if(!physics)
+  {
+    ROS_FATAL("ForceSensor %s can't retrieve physics information. Missing enable physics?", name.c_str());
+    exit(0);
+  }
   if(physics->physicsStep ==0) //Check if physics is looping (data is not reliable)
   {
 
     osg::Matrix ObjectMat= offset * *getWorldCoords(target); //aply rotation offset to transform from world coords.
 
-    osg::Vec3 res=ObjectMat.getRotate().inverse()*osg::Vec3(linFinal.x()-linInitial.x(),linFinal.y()-linInitial.y(),linFinal.z()-linInitial.z());
+    double linSpeed[3],angSpeed[3];
+    physics->callbackManager->getForceSensorSpeed(CBreference,linSpeed,angSpeed);
+
+    osg::Vec3 res=ObjectMat.getRotate().inverse()*osg::Vec3(linSpeed[0],linSpeed[1],linSpeed[2]);
 
     force[0]=res.x();
     force[1]=res.y();
     force[2]=res.z();
 
-    res=ObjectMat.getRotate().inverse()*osg::Vec3(angFinal.x()-angInitial.x(),angFinal.y()-angInitial.y(),angFinal.z()-angInitial.z());
+    res=ObjectMat.getRotate().inverse()*osg::Vec3(angSpeed[0],angSpeed[1],angSpeed[2]);
 
     //torque forces are extremely high so they ar reduced.(some physics parameter must be wrong).
     torque[0]=res.x()/10;
@@ -126,11 +110,11 @@ bool ForceSensor_Factory::applyConfig(SimulatedIAUV * auv, Vehicle &vehicleChars
     {
       ForceSensor_Config * cfg = dynamic_cast<ForceSensor_Config *>(vehicleChars.simulated_devices[i].get());
       osg::ref_ptr<osg::Node> target;
-      for(i=0;i<auv->urdf->link.size();i++)
+      for(int j=0;j<auv->urdf->link.size();j++)
       {
-        if(auv->urdf->link[i]->getName()==cfg->target)
+        if(auv->urdf->link[j]->getName()==cfg->target)
         {
-          target=auv->urdf->link[i];
+          target=auv->urdf->link[j];
         }
       }
       auv->devices->all.push_back(ForceSensor::Ptr(new ForceSensor(cfg,target)));
@@ -174,8 +158,7 @@ void ForceSensor_ROSPublisher::publish()
 
   dev->getForceTorque(force,torque);
 
-  ros::WallDuration t_diff = ros::WallTime::now() - last;
-  elapsed = t_diff.toSec();
+  elapsed = 1.0/publish_rate;
 
   geometry_msgs::WrenchStamped msg;
   msg.header.stamp = getROSTime();
@@ -185,13 +168,11 @@ void ForceSensor_ROSPublisher::publish()
   msg.wrench.force.y=force[1]/elapsed*(1/dev->btTarget->getInvMass());
   msg.wrench.force.z=force[2]/elapsed*(1/dev->btTarget->getInvMass());
 
-
   msg.wrench.torque.x=torque[0]/elapsed*(1/dev->btTarget->getInvMass());
   msg.wrench.torque.y=torque[1]/elapsed*(1/dev->btTarget->getInvMass());
   msg.wrench.torque.z=torque[2]/elapsed*(1/dev->btTarget->getInvMass());
-  pub_.publish(msg);
 
-  last = ros::WallTime::now();
+  pub_.publish(msg);
 }
 
 #if ROS_VERSION_MINIMUM(1, 9, 0)
