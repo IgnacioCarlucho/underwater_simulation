@@ -352,23 +352,6 @@ struct Object
   boost::shared_ptr<PhysicProperties> physicProperties;
 };
 
-struct PhysicsWater
-{
-  int enable;
-  double position[3];
-  double resolution;
-  double size[6];
-  void init()
-  {
-    enable = 0;
-    resolution = 0.25;
-    position[0] = position[1] = position[2] = 0;
-    size[0] = size[2] = size[4] = -10;
-    size[1] = size[3] = size[5] = 10;
-  }
-  ;
-};
-
 struct ShowTrajectory
 {
   std::string target;
@@ -380,6 +363,27 @@ struct ShowTrajectory
     color[0]= 1; color[1]= 0; color[2] = 0;
     lineStyle=1;
   }
+};
+
+struct PhysicsConfig
+{
+ typedef enum
+ {
+    Dantzig,SolveProjectedGauss,SequentialImpulse
+ } solver_type;
+ double gravity[3];
+ double frequency;
+ int subSteps;
+ solver_type solver;
+
+ void init()
+ {
+   memset(gravity, 0, 3 * sizeof(double));
+   frequency = 60;
+   subSteps = 0;
+   solver=Dantzig;
+ }
+ 
 };
 
 class ConfigFile
@@ -399,8 +403,6 @@ public:
   void processFog(const xmlpp::Node* node);
   void processOceanState(const xmlpp::Node* node);
   void processSimParams(const xmlpp::Node* node);
-  void processPhysicsWater(const xmlpp::Node* node);
-  void processSize(const xmlpp::Node* node);
   void processShowTrajectory(const xmlpp::Node* node, ShowTrajectory & trajectory);
   void processParameters(const xmlpp::Node*, Parameters *params);
   void processVcam(const xmlpp::Node* node, Vcam &vcam);
@@ -436,16 +438,15 @@ public:
          oceanSurfaceHeight, fogDensity;
   int isNotChoppy, disableShaders, eye_in_hand, freeMotion, resw, resh, enablePhysics;
   string arm, vehicleToTrack;
-  double camPosition[3], camLookAt[3], fogColor[3], color[3], attenuation[3], offsetr[3], offsetp[3], gravity[3];
+  double camPosition[3], camLookAt[3], fogColor[3], color[3], attenuation[3], offsetr[3], offsetp[3];
   double camFov, camAspectRatio, camNear, camFar;
   list<Vehicle> vehicles;
   list<Object> objects;
   list<ROSInterfaceInfo> ROSInterfaces;
   list<ROSInterfaceInfo> ROSPhysInterfaces; //Physics interfaces are loaded after physics
   list<ShowTrajectory> trajectories;
-  PhysicsWater physicsWater;
-  double physicsFrequency;
-  int physicsSubSteps;
+  PhysicsConfig physicsConfig;
+
 
   ConfigFile(const std::string &fName);
 };
