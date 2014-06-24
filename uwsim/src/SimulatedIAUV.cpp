@@ -93,6 +93,7 @@ SimulatedIAUV::SimulatedIAUV(SceneBuilder *oscene, Vehicle vehicleChars) :
     baseTransform->addChild(urdf->baseTransform);
     baseTransform->setName(vehicleChars.name);
   }
+  scale=osg::Vec3d(vehicleChars.scale[0],vehicleChars.scale[1],vehicleChars.scale[2]);
 
   //Add virtual  cameras in config file
   while (vehicleChars.Vcams.size() > 0)
@@ -110,7 +111,7 @@ SimulatedIAUV::SimulatedIAUV(SceneBuilder *oscene, Vehicle vehicleChars) :
     urdf->link[vcam.link]->asGroup()->addChild(vMc);
     camview.push_back(
         VirtualCamera(oscene->root, vcam.name, vMc, vcam.resw, vcam.resh, vcam.baseLine, vcam.frameId,
-                      vcam.parameters.get(), 0, vcam.bw));
+                      vcam.fov,vcam.parameters.get(), 0, vcam.bw));
     if (vcam.showpath)
       camview[camview.size() - 1].showPath(vcam.showpath);
     OSG_INFO << "Done adding a virtual camera..." << std::endl;
@@ -132,7 +133,7 @@ SimulatedIAUV::SimulatedIAUV(SceneBuilder *oscene, Vehicle vehicleChars) :
     urdf->link[vcam.link]->asGroup()->addChild(vMc);
     camview.push_back(
         VirtualCamera(oscene->root, vcam.name, vMc, vcam.resw, vcam.resh, vcam.baseLine, vcam.frameId,
-                      vcam.parameters.get(), 1, 0));
+                      vcam.fov,vcam.parameters.get(), 1, 0));
     if (vcam.showpath)
       camview[camview.size() - 1].showPath(vcam.showpath);
     OSG_INFO << "Done adding a virtual camera..." << std::endl;
@@ -322,8 +323,8 @@ void SimulatedIAUV::setVehiclePosition(double x, double y, double z, double roll
   Rx.makeRotate(roll, 1, 0, 0);
   Ry.makeRotate(pitch, 0, 1, 0);
   Rz.makeRotate(yaw, 0, 0, 1);
-  S.makeScale(2, 5, 8);
-  transform = Rz * Ry * Rx * T;
+  S.makeScale(scale);
+  transform = S * Rz * Ry * Rx * T;
   setVehiclePosition(transform);
 }
 
