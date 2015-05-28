@@ -15,6 +15,7 @@
 #include <osg/LineWidth>
 #include <osg/Material>
 #include <osgOcean/ShaderManager>
+#include <uwsim/osgPCDLoader.h>
 
 #include <sensor_msgs/Imu.h>
 #include <sensor_msgs/NavSatFix.h>
@@ -233,6 +234,47 @@ void ROSPoseToPAT::processData(const geometry_msgs::Pose::ConstPtr& pose)
 ROSPoseToPAT::~ROSPoseToPAT()
 {
 }
+
+ROSPointCloudLoader::ROSPointCloudLoader(std::string topic, osg::ref_ptr<osg::Group> root,unsigned int mask)
+: ROSSubscriberInterface(topic), scene_root(root), nodeMask(mask)
+{
+  
+}
+
+void ROSPointCloudLoader::createSubscriber(ros::NodeHandle &nh)
+{
+  ROS_INFO("ROSPointCloudLoader subscriber on topic %s", topic.c_str());
+  sub_ = nh.subscribe<pcl::PointCloud<pcl::PointXYZ> >(topic, 10, &ROSPointCloudLoader::processData, this);
+}
+
+void ROSPointCloudLoader::processData(const pcl::PointCloud<pcl::PointXYZ>::ConstPtr& msg)
+{
+   osgPCDLoader<pcl::PointXYZ> pcdLoader(*msg.get());
+
+   osg::ref_ptr < osg::Node > frame_id=findRN(msg->header.frame_id,scene_root);
+
+   if(frame_id)
+   {
+     osg::ref_ptr < osg::Node > LWNode=findRN("localizedWorld",scene_root);
+     boost::shared_ptr<osg::Matrix> LWMat=getWorldCoords(LWNode);
+     LWMat->invert(*LWMat);
+
+     boost::shared_ptr<osg::Matrix> WorldToBase=getWorldCoords(frame_id);
+
+     osg::Matrixd  res=*WorldToBase * *LWMat;
+     osg::ref_ptr < osg::MatrixTransform > WorldToBaseTransform= new osg::MatrixTransform(res);
+     WorldToBaseTransform->addChild(pcdLoader.getGeode());
+
+     pcdLoader.getGeode()->setNodeMask(nodeMask);
+     LWNode->asGroup()->addChild(WorldToBaseTransform);
+  }
+  else
+  {
+    ROS_WARN ("%s is not a valid frame id for PointCloudLoader.",msg->header.frame_id.c_str());
+  }
+}
+
+ROSPointCloudLoader::~ROSPointCloudLoader(){}
 
 /*
  class ROSNavigationDataToPAT: public ROSSubscriberInterface {
@@ -1024,7 +1066,7 @@ void WorldToROSTF::publish()
       {
         tf::Pose pose;
         std::string parent;
-        if(iauvFile_[i].get()->imus[i].getTFTransform(pose,parent))
+        if(iauvFile_[i].get()->imus[j].getTFTransform(pose,parent))
         {
           tf::StampedTransform t(pose, getROSTime(),   "/"+iauvFile_[i].get()->name + "/" +parent, iauvFile_[i].get()->imus[i].name);
           tfpub_->sendTransform(t);
@@ -1036,7 +1078,7 @@ void WorldToROSTF::publish()
       {
         tf::Pose pose;
         std::string parent;
-        if(iauvFile_[i].get()->range_sensors[i].getTFTransform(pose,parent))
+        if(iauvFile_[i].get()->range_sensors[j].getTFTransform(pose,parent))
         {
           tf::StampedTransform t(pose, getROSTime(),   "/"+iauvFile_[i].get()->name + "/" +parent, iauvFile_[i].get()->range_sensors[i].name);
           tfpub_->sendTransform(t);
@@ -1048,7 +1090,7 @@ void WorldToROSTF::publish()
       {
         tf::Pose pose;
         std::string parent;
-        if(iauvFile_[i].get()->pressure_sensors[i].getTFTransform(pose,parent))
+        if(iauvFile_[i].get()->pressure_sensors[j].getTFTransform(pose,parent))
         {
           tf::StampedTransform t(pose, getROSTime(),   "/"+iauvFile_[i].get()->name + "/" +parent, iauvFile_[i].get()->pressure_sensors[i].name);
           tfpub_->sendTransform(t);
@@ -1060,7 +1102,7 @@ void WorldToROSTF::publish()
       {
         tf::Pose pose;
         std::string parent;
-        if(iauvFile_[i].get()->gps_sensors[i].getTFTransform(pose,parent))
+        if(iauvFile_[i].get()->gps_sensors[j].getTFTransform(pose,parent))
         {
           tf::StampedTransform t(pose, getROSTime(),   "/"+iauvFile_[i].get()->name + "/" +parent, iauvFile_[i].get()->gps_sensors[i].name);
           tfpub_->sendTransform(t);
@@ -1072,7 +1114,7 @@ void WorldToROSTF::publish()
       {
         tf::Pose pose;
         std::string parent;
-        if(iauvFile_[i].get()->dvl_sensors[i].getTFTransform(pose,parent))
+        if(iauvFile_[i].get()->dvl_sensors[j].getTFTransform(pose,parent))
         {
           tf::StampedTransform t(pose, getROSTime(),   "/"+iauvFile_[i].get()->name + "/" +parent, iauvFile_[i].get()->dvl_sensors[i].name);
           tfpub_->sendTransform(t);

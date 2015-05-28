@@ -32,7 +32,8 @@ struct ROSInterfaceInfo
   {
     Unknown, ROSOdomToPAT, PATToROSOdom, ROSJointStateToArm, ArmToROSJointState, VirtualCameraToROSImage,
     RangeSensorToROSRange, ROSImageToHUD, ROSTwistToPAT, ROSPoseToPAT, ImuToROSImu, PressureSensorToROS, GPSSensorToROS,
-    DVLSensorToROS, RangeImageSensorToROSImage, multibeamSensorToLaserScan, SimulatedDevice, contactSensorToROS, WorldToROSTF
+    DVLSensorToROS, RangeImageSensorToROSImage, multibeamSensorToLaserScan, SimulatedDevice, contactSensorToROS, WorldToROSTF,
+    ROSPointCloudLoader
   } type_t;
   string subtype; //type of a SimulatedDevice
   std::map<std::string, std::string> values; //all configuration values for a SimulatedDevice
@@ -59,6 +60,7 @@ struct Vcam
   double position[3], orientation[3];
   double baseLine; ///baseline for stereo cameras
   double fov;
+  double std; //Additive gaussian noise deviation
   boost::shared_ptr<Parameters> parameters;
   void init()
   {
@@ -81,6 +83,7 @@ struct Vcam
     range = 0;
     bw = 0;
     fov=50;
+    std=0.005;
   }
 };
 
@@ -222,7 +225,9 @@ struct XMLMultibeamSensor
   string linkName;
   double position[3], orientation[3];
   int link;
+  int visible;
   double initAngle, finalAngle, angleIncr, range;
+  bool underwaterParticles;
   void init()
   {
     name = "";
@@ -233,6 +238,8 @@ struct XMLMultibeamSensor
     orientation[0] = 0;
     orientation[1] = 0;
     orientation[2] = 0;
+    underwaterParticles=false;
+    visible = 0;
   }
 };
 
@@ -354,6 +361,7 @@ struct Object
   double scale[3];
   double offsetp[3];
   double offsetr[3];
+  double buried;// % Object buried in the seafloor
   boost::shared_ptr<PhysicProperties> physicProperties;
 };
 

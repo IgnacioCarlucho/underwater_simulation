@@ -6,6 +6,7 @@ find_package(catkin REQUIRED COMPONENTS
   image_transport
   kdl_parser
   nav_msgs
+  pcl_ros
   pluginlib
   resource_retriever
   robot_state_publisher
@@ -30,6 +31,7 @@ catkin_package(
     image_transport
     kdl_parser
     nav_msgs
+    pcl_ros
     pluginlib
     resource_retriever
     robot_state_publisher
@@ -52,7 +54,7 @@ find_package(Boost REQUIRED thread program_options system filesystem)
 
 set(CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/CMakeModules;{CMAKE_MODULE_PATH}")
 
-FIND_PACKAGE ( OpenSceneGraph COMPONENTS osgSim osgUtil osgDB osgFX osgGA osgTerrain osgViewer osgText osgWidget osg)
+FIND_PACKAGE ( OpenSceneGraph COMPONENTS osgSim osgUtil osgDB osgFX osgGA osgTerrain osgViewer osgText osgWidget osg osgParticle)
 
 SET(UWSIM_ROOT_PATH "${CMAKE_INSTALL_PREFIX}/${CATKIN_PACKAGE_SHARE_DESTINATION}")
 
@@ -100,10 +102,9 @@ src/PhysicsBuilder.cpp
 add_library(uwsim_plugins_simdev 
 src/SimDev_Echo.cpp
 src/ForceSensor.cpp
+src/DredgeTool.cpp
 )
-target_link_libraries(uwsim_plugins_simdev ${catkin_LIBRARIES})
-
-message("OPENSCENEGRAPH_LIBRARIES= ${OPENSCENEGRAPH_LIBRARIES}")
+target_link_libraries(uwsim_plugins_simdev ${catkin_LIBRARIES} ${OPENSCENEGRAPH_LIBRARIES})
 
 target_link_libraries(uwsim ${catkin_LIBRARIES} ${Boost_LIBRARIES} ${OSGOCEAN_LIBRARIES} ${OSGWORKS_LIBRARIES} ${OSGBULLET_LIBRARIES} ${BULLET_LIBRARIES} ${OPENSCENEGRAPH_LIBRARIES} ${LIBXML++_LIBRARIES} -lGLU)
 add_dependencies(uwsim underwater_sensor_msgs_gencpp)
