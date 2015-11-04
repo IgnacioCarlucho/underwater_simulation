@@ -8,7 +8,7 @@ compiler:
 notifications:
   email:
     recipients:
-      - marioprats@gmail.com
+      - perezsolerj@gmail.com
     on_success: change #[always|never|change] # default: change
     on_failure: change #[always|never|change] # default: always
 before_install:
@@ -27,7 +27,7 @@ install:
   - mkdir -p ~/ros/ws_uwsim/src
   - cd ~/ros/ws_uwsim/src
   - wstool init .
-  - git clone -b $ROS_DISTRO-devel https://github.com/uji-ros-pkg/underwater_simulation.git
+  - git clone -b $ROS_DISTRO-devel https://github.com/perezsolerj/underwater_simulation.git
   - rm -rf $REPOSITORY_NAME
   - ln -s $CI_SOURCE_PATH . # Link the repo we are testing to the new workspace
   - cd ../
