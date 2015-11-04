@@ -1,4 +1,6 @@
 # Generic UWSim Travis Continuous Integration Configuration File
+sudo: required
+dist: trusty
 language:
   - cpp
 compiler:
