@@ -13,6 +13,7 @@
 #include <uwsim/ConfigXMLParser.h>
 #include <uwsim/SimulatorConfig.h>
 #include <osgDB/FileUtils>
+#include <ros/package.h>
 
 void ConfigFile::esPi(string in, double &param)
 {
@@ -699,7 +700,22 @@ int ConfigFile::processURDFFile(string file, Vehicle &vehicle)
 {
   urdf::Model model;
 
-  std::string file_fullpath = osgDB::findDataFile(file);
+  std::string file_fullpath;
+
+  if(file.substr(0,10) == std::string("package://"))
+  {
+    // the package name is between "package://" and the next '/' character, dig it out.
+    // where 10 is the length of "package://"
+    std::string package_path = ros::package::getPath(file.substr(10, file.find('/',10)-10));
+    // take string after package name
+    std::string rest_of_path = file.substr(file.find('/',10)); 
+    file_fullpath = package_path + rest_of_path;
+  }
+  else
+  {
+    file_fullpath = osgDB::findDataFile(file);
+  }
+
   if (file_fullpath == std::string("") || !model.initFile(file_fullpath))
   {
     osg::notify(osg::ALWAYS) << "Failed to parse urdf file " << file << std::endl;
@@ -1043,6 +1059,11 @@ void ConfigFile::processVehicle(const xmlpp::Node* node, Vehicle &vehicle)
       Vcam aux;
       aux.init();
       aux.range = 1;
+      const xmlpp::Attribute * atrib =  dynamic_cast<const xmlpp::Element*>(child)->get_attribute("underwaterParticles");
+      if(atrib and atrib->get_value()=="true")
+      {
+        aux.underwaterParticles=true;
+      }
       processVcam(child, aux);
       vehicle.VRangecams.push_back(aux);
     }
@@ -1355,6 +1376,10 @@ void ConfigFile::processROSInterfaces(const xmlpp::Node* node)
       }
       else
          rosInterface.del=true;
+    }
+    else if (child->get_name() == "RangeCameraToPCL")
+    {
+      rosInterface.type = ROSInterfaceInfo::RangeCameraToPCL;
     }
     else if (child->get_name() == "SimulatedDeviceROS")
     {
