@@ -1,8 +1,8 @@
 # Dynamics model parameters for G500
 
 g500/num_actuators: 5
-g500/dynamics/period: 0.001
-g500/dynamics/uwsim_period: 0.001
+g500/dynamics/period: 0.001 #0.02 # 0.001
+g500/dynamics/uwsim_period: 0.001 #0.02 # 0.001
 g500/dynamics/mass: 98.0
 g500/dynamics/gravity_center: [0.0, 0.0, 0.05]
 g500/dynamics/g: 9.81
@@ -57,7 +57,7 @@ g500/dynamics/allocation_matrix: "
 -ct[0]*self.dh*abs(du[0]),      ct[1]*self.dh*abs(du[1]),       .0,                       .0,                           .0]"
 
 #Meters and Rads [X, Y, Z, Roll, Pitch, Yaw]
-g500/dynamics/initial_pose: [0.0, 0.0, 0.0, 0, 0, 1.57] #[3.0, 1.1, 2.8, 0, 0, 3.14]
+g500/dynamics/initial_pose: [-1.4,-4.5, 7.5, 0, 0, 1.27] #[0.0, 0.0, 0.0, 0, 0, 1.57] #[3.0, 1.1, 2.8, 0, 0, 3.14]
 g500/dynamics/initial_velocity: [0, 0, 0, 0, 0, 0]
 
 g500/dynamics/topic_name: "/dataNavigator"
