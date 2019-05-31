@@ -18,3 +18,6 @@ https://groups.google.com/a/uji.es/forum/#!forum/uji-ros-pkg-support
 ## Build Status
 
 [![Build Status](https://travis-ci.org/perezsolerj/underwater_simulation.png?branch=indigo-devel)](https://travis-ci.org/perezsolerj/underwater_simulation)
+
+
+## Some scenes added for particular experiments
